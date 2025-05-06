@@ -13,3 +13,6 @@ COPY app.py .
 ENV PATH=/root/.local/bin:$PATH
 EXPOSE 5000
 CMD ["python", "app.py"]
+
+RUN adduser --disabled-password appuser
+USER appuser

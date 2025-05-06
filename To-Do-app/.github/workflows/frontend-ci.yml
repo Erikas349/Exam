@@ -50,3 +50,8 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CLOUDFRONT_DIST_ID }} \
             --paths "/*"
+      
+      - name: Deploy to S3
+        run: |
+            aws s3 sync frontend/build/ s3://todo-app-bucket --delete
+            

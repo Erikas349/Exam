@@ -17,3 +17,22 @@ resource "aws_instance" "todo_app" {
         Name = "TodoApp"
     }
 }
+
+resource "aws_db_instance" "todo_db" {
+    identifier = "todo-db"
+    engine    = "postgress"
+    instance_class = "db.t2.micro"
+    allocated_storage = 20
+    username = "admin"
+    password = "var.db_password"
+    skip_final_snapshot = true
+}
+
+resource "aws_security_group" "allow_app" {
+  ingress = {
+    from_port   = 5000
+    to_port     = 5000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
