@@ -1,27 +1,49 @@
 version: '3.8'
+
 services:
   backend:
     build: ./backend
-    portss: 
+    ports:
       - "5000:5000"
+    volumes:
+    - ./data:/home/app/data
+  
+    networks:
+      - monitoring
     environment:
-      -FLASK_ENV=development
-    depends_on:
-      - db
+      AWS_ACCESS_KEY_ID: your_aws_access_key_id
+      AWS_SECRET_ACCESS_KEY: your_aws_secret_access_key
+      AWS_DEFAULT_REGION: eu-central-1
 
   frontend:
-    buold: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - "3000:80"
-    depends_on:
-      - backend
 
-  db:
-    image: postgres:13
-    environment:
-      POSTGRES_PASSWORD: example
+  prometheus:
+    image: prom/prometheus
+    container_name: 
+      prometheus
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - monitoring
 
 volumes:
-  postgres_data:
+  grafana-data:
+
+networks:
+  monitoring:

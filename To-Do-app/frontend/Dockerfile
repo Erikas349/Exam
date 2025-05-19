@@ -1,13 +1,19 @@
-#Stage 1: Build
-FROM node:18-alpine AS builder
+# Stage 1: Build frontend
+FROM node:22-alpine AS builder
 WORKDIR /app
-COPY package.json .
+
+COPY package.json ./
 RUN npm install
 COPY . .
-RUN npm run build
+RUN CI=false npm run build || \
+    (echo "Build failed - attempting to fix linting errors..." && \
+     npx eslint --fix src/ && \
+     npm run build)
 
-#Stage 2: Serve
-FROM nginx:alpine
+# Stage 2: Serve with NGINX
+FROM nginx:1.25-alpine
 COPY --from=builder /app/build /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
