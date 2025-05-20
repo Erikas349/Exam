@@ -2,48 +2,63 @@ name: CI/CD to EC2
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    - name: Set up SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-    - name: Deploy to EC2
-      run: |
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.EC2_PORT }} ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          cd ~/Erikas349/Exam/To-Do-app || {
-            git clone https://github.com/Erikas349/Exam.git ~/Erikas349/Exam
+      - name: Deploy to EC2
+        run: |
+          ssh -i ~/.ssh/id_rsa \
+              -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 \
+              -p ${{ secrets.EC2_PORT }} \
+              ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e  # Exit on error
+            mkdir -p ~/Erikas349/Exam
+            if [ ! -d ~/Erikas349/Exam/To-Do-app ]; then
+              git clone https://github.com/Erikas349/Exam.git ~/Erikas349/Exam
+            fi
             cd ~/Erikas349/Exam/To-Do-app
-          }
-          git pull origin main
-          docker compose down
-          docker compose up --build -d
-        EOF
+            git fetch origin
+            git reset --hard origin/main
+            git clean -fd
+            docker compose down --remove-orphans || true
+            docker compose up --build --detach --remove-orphans
+          EOF
 
-    - name: Health Check - Backend
-      run: |
-        echo "Waiting for backend..."
-        sleep 15
-        curl -f http://${{ secrets.EC2_HOST }}:5000/todos || {
-          echo "❌ Backend not reachable!"
+      - name: Verify Backend
+        run: |
+          for i in {1..5}; do
+            if curl -fsS "http://${{ secrets.EC2_HOST }}:5000/todos" >/dev/null; then
+              echo "✅ Backend is up!"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "❌ Backend health check failed"
           exit 1
-        }
 
-    - name: Health Check - Frontend
-      run: |
-        echo "Checking frontend..."
-        curl -f http://${{ secrets.EC2_HOST }}:3000 || {
-          echo "❌ Frontend not reachable!"
+      - name: Verify Frontend
+        run: |
+          for i in {1..5}; do
+            if curl -fsS "http://${{ secrets.EC2_HOST }}:3000" >/dev/null; then
+              echo "✅ Frontend is up!"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "❌ Frontend health check failed"
           exit 1
-        }
