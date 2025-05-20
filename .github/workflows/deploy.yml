@@ -9,24 +9,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
-    
-    - name: Set up SSH
-  shell: bash
-  run: |
-    mkdir -p $HOME/.ssh
-    echo "${{ secrets.EC2_SSH_KEY }}" > $HOME/.ssh/id_rsa
-    chmod 600 $HOME/.ssh/id_rsa
-    ssh-keyscan -H ${{ secrets.EC2_HOST }} >> $HOME/.ssh/known_hosts
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    - name: Deploy to EC2
-  run: |
-    ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} -p ${{ secrets.EC2_PORT }} << 'EOF'
-      cd ~/Erikas349/Exam/tree/main/To-Do-app || git clone https://github.com/Erikas349/Exam Erikas349/Exam/tree/main/To-Do-app
-      cd ~/Erikas349/Exam/tree/main/To-Do-app
-      git pull origin main
-      docker compose down
-      docker compose up --build -d
-    EOF
-        
+      - name: Set up SSH
+        shell: bash
+        run: |
+          mkdir -p $HOME/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > $HOME/.ssh/id_rsa
+          chmod 600 $HOME/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> $HOME/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        shell: bash
+        run: |
+          ssh -i $HOME/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} -p ${{ secrets.EC2_PORT }} << 'EOF'
+            cd ~/Erikas349/Exam/To-Do-app || git clone https://github.com/Erikas349/Exam.git ~/Erikas349/Exam
+            cd ~/Erikas349/Exam/To-Do-app
+            git pull origin main
+            docker compose down
+            docker compose up --build -d
+          EOF
+
+      - name: Health Check
+        run: |
+          echo "Waiting for app to start..."
+          sleep 10
+          curl -f http://${{ secrets.EC2_HOST }}:5000/todos || {
+            echo "Health check failed!"
+            exit 1
+          }
+
+      - name: Frontend Health Check
+        run: |
+          echo "Checking frontend..."
+          curl -f http://${{ secrets.EC2_HOST }}:3000 || {
+            echo "Frontend is not reachable!"
+            exit 1
+          }
