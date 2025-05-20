@@ -20,14 +20,13 @@ jobs:
     chmod 600 $HOME/.ssh/id_rsa
     ssh-keyscan -H ${{ secrets.EC2_HOST }} >> $HOME/.ssh/known_hosts
 
-
     - name: Deploy to EC2
-      run: |
-        ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} -p ${{ secrets.EC2_PORT }} << 'EOF'
-          cd ~/Erikas349/Exam/tree/main/To-Do-app || git clone https://github.com/Erikas349/Exam Erikas349/Exam/tree/main/To-Do-app
-          cd ~/Erikas349/Exam/tree/main/To-Do-app
-          git pull origin main
-          docker compose down
-          docker compose up --build -d
-        EOF
+  run: |
+    ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} -p ${{ secrets.EC2_PORT }} << 'EOF'
+      cd ~/Erikas349/Exam/tree/main/To-Do-app || git clone https://github.com/Erikas349/Exam Erikas349/Exam/tree/main/To-Do-app
+      cd ~/Erikas349/Exam/tree/main/To-Do-app
+      git pull origin main
+      docker compose down
+      docker compose up --build -d
+    EOF
         
