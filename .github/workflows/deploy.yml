@@ -70,38 +70,3 @@ jobs:
         done
         echo "❌ Frontend failed health check."
         exit 1
-
-    - name: Notify Slack (optional)
-      if: always()
-      uses: slackapi/slack-github-action@v1
-      with:
-        payload: |
-          {
-            "text": "Deployment ${{ job.status }}",
-            "blocks": [
-              {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": "*${{ github.repository }} deployment*"
-                }
-              },
-              {
-                "type": "section",
-                "fields": [
-                  {
-                    "type": "mrkdwn",
-                    "text": "*Status:* ${{ job.status }}"
-                  },
-                  {
-                    "type": "mrkdwn",
-                    "text": "*Branch:* ${{ github.ref }}"
-                  },
-                  {
-                    "type": "mrkdwn",
-                    "text": "*Commit:* <https://github.com/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}"
-                  }
-                ]
-              }
-            ]
-          }
