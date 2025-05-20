@@ -9,34 +9,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Code (with submodules)
         uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+          fetch-depth: 0
 
-      - name: Configure SSH
+      - name: Set up SSH
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          # Use a persistent location instead of ~/.ssh
+          SSH_DIR="$RUNNER_TEMP/.ssh"
+          mkdir -p "$SSH_DIR"
+          echo "${{ secrets.EC2_SSH_KEY }}" > "$SSH_DIR/id_rsa"
+          chmod 600 "$SSH_DIR/id_rsa"
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> "$SSH_DIR/known_hosts"
+          echo "SSH_DIR=$SSH_DIR" >> $GITHUB_ENV
 
       - name: Deploy to EC2
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
-          ssh -i ~/.ssh/id_rsa \
+          ssh -i "${{ env.SSH_DIR }}/id_rsa" \
+              -o UserKnownHostsFile="${{ env.SSH_DIR }}/known_hosts" \
               -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=30 \
               -p ${{ secrets.EC2_PORT }} \
               ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e  # Exit on error
-            mkdir -p ~/Erikas349/Exam
-            if [ ! -d ~/Erikas349/Exam/To-Do-app ]; then
-              git clone https://github.com/Erikas349/Exam.git ~/Erikas349/Exam
-            fi
-            cd ~/Erikas349/Exam/To-Do-app
-            git fetch origin
-            git reset --hard origin/main
-            git clean -fd
-            docker compose down --remove-orphans || true
-            docker compose up --build --detach --remove-orphans
+          
           EOF
 
       - name: Verify Backend
