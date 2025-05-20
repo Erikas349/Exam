@@ -4,20 +4,34 @@ on:
   push:
     branches: [main]
 
+env:
+  NODE_ENV: production
+  DOCKER_BUILDKIT: 1  # Faster Docker builds
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code (with submodules)
+      # 1. Checkout with submodules
+      - name: Checkout Code
         uses: actions/checkout@v3
         with:
           submodules: 'recursive'
           fetch-depth: 0
 
-      - name: Set up SSH
+      # 2. Cache Docker layers for faster rebuilds
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      # 3. SSH Setup (secure + persistent)
+      - name: Configure SSH
         run: |
-          # Use a persistent location instead of ~/.ssh
           SSH_DIR="$RUNNER_TEMP/.ssh"
           mkdir -p "$SSH_DIR"
           echo "${{ secrets.EC2_SSH_KEY }}" > "$SSH_DIR/id_rsa"
@@ -25,38 +39,106 @@ jobs:
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> "$SSH_DIR/known_hosts"
           echo "SSH_DIR=$SSH_DIR" >> $GITHUB_ENV
 
+      # 4. Zero-downtime Deployment
       - name: Deploy to EC2
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           ssh -i "${{ env.SSH_DIR }}/id_rsa" \
               -o UserKnownHostsFile="${{ env.SSH_DIR }}/known_hosts" \
               -o StrictHostKeyChecking=no \
               -p ${{ secrets.EC2_PORT }} \
               ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          set -ex  # Debug mode + exit on error
+          echo "=== Starting Deployment ==="
+
+          # Directory setup
+          mkdir -p ~/Erikas349/Exam
+          cd ~/Erikas349/Exam
+
+          # Git operations
+          if [ ! -d To-Do-app/.git ]; then
+            git clone https://github.com/Erikas349/Exam.git .
+          fi
+          git fetch origin
+          git checkout main
+          git reset --hard origin/main
+          git clean -fd
+
+          # Docker deployment
+          cd To-Do-app
+          docker compose down --remove-orphans || true
+          docker compose build --pull --no-cache
+          docker compose up -d --scale backend=2  # Start new instances
           
+          # Gradual rollout
+          sleep 30  # Wait for new containers
+          docker compose stop backend=1  # Stop old container
+          docker compose up -d --scale backend=1  # Return to normal
+          docker system prune -af  # Clean all unused resources
+
+          echo "=== Deployment Complete ==="
           EOF
 
+      # 5. Health Checks (with retries)
       - name: Verify Backend
         run: |
           for i in {1..5}; do
-            if curl -fsS "http://${{ secrets.EC2_HOST }}:5000/todos" >/dev/null; then
-              echo "✅ Backend is up!"
+            if curl -fsS "http://${{ secrets.EC2_HOST }}:5000/todos"; then
+              echo "✅ Backend healthy!"
               exit 0
             fi
             sleep 10
+            echo "Retry $i/5..."
           done
-          echo "❌ Backend health check failed"
+          echo "❌ Backend failed health check"
           exit 1
 
       - name: Verify Frontend
         run: |
           for i in {1..5}; do
-            if curl -fsS "http://${{ secrets.EC2_HOST }}:3000" >/dev/null; then
-              echo "✅ Frontend is up!"
+            if curl -fsS "http://${{ secrets.EC2_HOST }}:3000"; then
+              echo "✅ Frontend healthy!"
               exit 0
             fi
             sleep 10
+            echo "Retry $i/5..."
           done
-          echo "❌ Frontend health check failed"
+          echo "❌ Frontend failed health check"
           exit 1
+
+      # 6. Notification (Slack example)
+      - name: Notify Slack
+        if: always()  # Runs on success or failure
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "Deployment ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*${{ github.repository }} deployment*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Status:* ${{ job.status }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:* ${{ github.ref }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit:* <https://github.com/${{ github.repository }}/commit/${{ github.sha }}|${GITHUB_SHA:0:7}>"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
