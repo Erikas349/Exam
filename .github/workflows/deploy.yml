@@ -11,8 +11,8 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v3
-
-   - name: Set up SSH
+    
+    - name: Set up SSH
   shell: bash
   run: |
     mkdir -p $HOME/.ssh
