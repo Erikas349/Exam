@@ -5,140 +5,103 @@ on:
     branches: [main]
 
 env:
-  NODE_ENV: production
-  DOCKER_BUILDKIT: 1  # Faster Docker builds
+  DOCKER_BUILDKIT: 1
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout with submodules
-      - name: Checkout Code
-        uses: actions/checkout@v3
-        with:
-          submodules: 'recursive'
-          fetch-depth: 0
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
-      # 2. Cache Docker layers for faster rebuilds
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+    - name: Set up SSH
+      run: |
+        SSH_DIR="$HOME/.ssh"
+        mkdir -p "$SSH_DIR"
+        echo "${{ secrets.EC2_SSH_KEY }}" > "$SSH_DIR/id_rsa"
+        chmod 600 "$SSH_DIR/id_rsa"
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> "$SSH_DIR/known_hosts"
 
-      # 3. SSH Setup (secure + persistent)
-      - name: Configure SSH
-        run: |
-          SSH_DIR="$RUNNER_TEMP/.ssh"
-          mkdir -p "$SSH_DIR"
-          echo "${{ secrets.EC2_SSH_KEY }}" > "$SSH_DIR/id_rsa"
-          chmod 600 "$SSH_DIR/id_rsa"
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> "$SSH_DIR/known_hosts"
-          echo "SSH_DIR=$SSH_DIR" >> $GITHUB_ENV
+    - name: Deploy to EC2
+      run: |
+        ssh -i "$HOME/.ssh/id_rsa" \
+          -o StrictHostKeyChecking=no \
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+          -p ${{ secrets.EC2_PORT }} \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          set -e
+          echo "🔁 Pulling latest code..."
+          cd ~/Erikas349/Exam/To-Do-app || git clone https://github.com/Erikas349/Exam.git ~/Erikas349/Exam && cd ~/Erikas349/Exam/To-Do-app
+          git pull origin main
 
-      # 4. Zero-downtime Deployment
-      - name: Deploy to EC2
-        run: |
-          ssh -i "${{ env.SSH_DIR }}/id_rsa" \
-              -o UserKnownHostsFile="${{ env.SSH_DIR }}/known_hosts" \
-              -o StrictHostKeyChecking=no \
-              -p ${{ secrets.EC2_PORT }} \
-              ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          set -ex  # Debug mode + exit on error
-          echo "=== Starting Deployment ==="
+          echo "🔄 Rebuilding Docker containers..."
+          docker compose down --remove-orphans
+          docker compose up --build -d
 
-          # Directory setup
-          mkdir -p ~/Erikas349/Exam
-          cd ~/Erikas349/Exam
+          echo "🧹 Cleaning up..."
+          docker system prune -af --volumes
 
-          # Git operations
-          if [ ! -d To-Do-app/.git ]; then
-            git clone https://github.com/Erikas349/Exam.git .
+          echo "✅ Deployment done!"
+        EOF
+
+    - name: Health Check - Backend
+      run: |
+        for i in {1..5}; do
+          if curl -fs "http://${{ secrets.EC2_HOST }}:5000/todos"; then
+            echo "✅ Backend healthy!"
+            exit 0
           fi
-          git fetch origin
-          git checkout main
-          git reset --hard origin/main
-          git clean -fd
+          echo "⏳ Waiting for backend... ($i)"
+          sleep 10
+        done
+        echo "❌ Backend failed health check."
+        exit 1
 
-          # Docker deployment
-          cd To-Do-app
-          docker compose down --remove-orphans || true
-          docker compose build --pull --no-cache
-          docker compose up -d --scale backend=2  # Start new instances
-          
-          # Gradual rollout
-          sleep 30  # Wait for new containers
-          docker compose stop backend=1  # Stop old container
-          docker compose up -d --scale backend=1  # Return to normal
-          docker system prune -af  # Clean all unused resources
+    - name: Health Check - Frontend
+      run: |
+        for i in {1..5}; do
+          if curl -fs "http://${{ secrets.EC2_HOST }}:3000"; then
+            echo "✅ Frontend healthy!"
+            exit 0
+          fi
+          echo "⏳ Waiting for frontend... ($i)"
+          sleep 10
+        done
+        echo "❌ Frontend failed health check."
+        exit 1
 
-          echo "=== Deployment Complete ==="
-          EOF
-
-      # 5. Health Checks (with retries)
-      - name: Verify Backend
-        run: |
-          for i in {1..5}; do
-            if curl -fsS "http://${{ secrets.EC2_HOST }}:5000/todos"; then
-              echo "✅ Backend healthy!"
-              exit 0
-            fi
-            sleep 10
-            echo "Retry $i/5..."
-          done
-          echo "❌ Backend failed health check"
-          exit 1
-
-      - name: Verify Frontend
-        run: |
-          for i in {1..5}; do
-            if curl -fsS "http://${{ secrets.EC2_HOST }}:3000"; then
-              echo "✅ Frontend healthy!"
-              exit 0
-            fi
-            sleep 10
-            echo "Retry $i/5..."
-          done
-          echo "❌ Frontend failed health check"
-          exit 1
-
-      # 6. Notification (Slack example)
-      - name: Notify Slack
-        if: always()  # Runs on success or failure
-        uses: slackapi/slack-github-action@v1
-        with:
-          payload: |
-            {
-              "text": "Deployment ${{ job.status }}",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*${{ github.repository }} deployment*"
-                  }
-                },
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Status:* ${{ job.status }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Branch:* ${{ github.ref }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Commit:* <https://github.com/${{ github.repository }}/commit/${{ github.sha }}|${GITHUB_SHA:0:7}>"
-                    }
-                  ]
+    - name: Notify Slack (optional)
+      if: always()
+      uses: slackapi/slack-github-action@v1
+      with:
+        payload: |
+          {
+            "text": "Deployment ${{ job.status }}",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*${{ github.repository }} deployment*"
                 }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Status:* ${{ job.status }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Branch:* ${{ github.ref }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Commit:* <https://github.com/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}"
+                  }
+                ]
+              }
+            ]
+          }
