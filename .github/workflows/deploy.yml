@@ -23,7 +23,9 @@ jobs:
         chmod 600 "$SSH_DIR/id_rsa"
         echo "Host is ${{ secrets.EC2_HOST }}"
         ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> "$SSH_DIR/known_hosts"
-
+      
+    - name: List SSH files
+      run: ls -la $SSH_DIR
 
     - name: Deploy to EC2
       run: |
