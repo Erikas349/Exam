@@ -23,6 +23,9 @@ jobs:
         # Verify key was written correctly
         ls -la "$SSH_DIR" && head -n 3 "$SSH_DIR/id_rsa"
         chmod 600 "$SSH_DIR/id_rsa"
+    - name: Debug EC2_HOST
+      run: echo "Host is ${{ secrets.EC2_HOST }}"
+
         ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> "$SSH_DIR/known_hosts"
 
     - name: Deploy to EC2
