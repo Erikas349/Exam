@@ -1,38 +1,50 @@
 provider "aws" {
-  region = "eu-central-1"
+  region = "us-east-1"
 }
 
-resource "aws_instance" "todo_app" {
-    ami           = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI
-    instance_type = "t2.micro"
-    key_name      = "todo-app-key"
-    security_groups = ["todo-app-security"]
+resource "aws_instance" "app_server" {
+  ami           = "ami-0c94855ba95c71c99" # Replace with latest Amazon Linux or Ubuntu AMI
+  instance_type = "t2.micro"
 
-    user_data = <<-EOF
-                #!/bin/bash
-                docker-compose -f /home/ec2-user/docker-compose.yml up -d
-                EOF
+  key_name = "your-key-name" # You need to create/import this key in AWS
 
-    tags = {
-        Name = "TodoApp"
-    }
+  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+
+  tags = {
+    Name = "TodoApp"
+  }
+
+  user_data = <<-EOF
+              #!/bin/bash
+              sudo yum update -y
+              sudo yum install -y docker
+              sudo service docker start
+              docker run -d -p 80:80 your-dockerhub/image-name
+              EOF
 }
 
-resource "aws_db_instance" "todo_db" {
-    identifier = "todo-db"
-    engine    = "postgress"
-    instance_class = "db.t2.micro"
-    allocated_storage = 20
-    username = "admin"
-    password = "var.db_password"
-    skip_final_snapshot = true
-}
+resource "aws_security_group" "allow_ssh" {
+  name        = "allow_ssh"
+  description = "Allow SSH and HTTP"
 
-resource "aws_security_group" "allow_app" {
-  ingress = {
-    from_port   = 5000
-    to_port     = 5000
+  ingress {
+    from_port   = 22
+    to_port     = 22
     protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }

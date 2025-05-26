@@ -1,45 +1,33 @@
-name: Terraform Plan and Apply
+name: Terraform Deploy
 
 on:
   push:
-    branches: [ main ]
-    paths: [ 'infrastructure/**' ]  # Trigger only when infra changes
+    branches:
+      - main
 
 jobs:
   terraform:
+    name: Terraform Apply
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write  # Required for AWS OIDC auth
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.7
-
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-region: us-east-1
-          role-to-assume: arn:aws:iam::YOUR_ACCOUNT_ID:role/GitHubActionsRole
-          role-session-name: github-actions-terraform
+        uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
-        run: |
-          cd infrastructure
-          terraform init
+        run: terraform init
+        working-directory: infra
 
       - name: Terraform Plan
-        run: |
-          cd infrastructure
-          terraform plan -input=false
+        run: terraform plan
+        working-directory: infra
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main'  # Auto-apply only to main
-        run: |
-          cd infrastructure
-          terraform apply -auto-approve -input=false
+        run: terraform apply -auto-approve
+        working-directory: infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
