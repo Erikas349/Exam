@@ -36,19 +36,29 @@ jobs:
           -p ${{ secrets.EC2_PORT }} \
           ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
           set -e
+
+          echo "📦 Installing git and docker..."
+          sudo yum update -y
+          sudo yum install -y git docker
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+
           echo "🔁 Pulling latest code..."
-          cd ~/Erikas349/Exam/To-Do-app || git clone https://github.com/Erikas349/Exam.git ~/Erikas349/Exam && cd ~/Erikas349/Exam/To-Do-app
+          cd ~/Exam/To-Do-app || git clone https://github.com/Erikas349/Exam.git ~/Exam && cd ~/Exam/To-Do-app
           git pull origin main
 
           echo "🔄 Rebuilding Docker containers..."
-          docker compose down --remove-orphans
-          docker compose up --build -d
+          docker-compose down --remove-orphans
+          docker-compose up --build -d
 
           echo "🧹 Cleaning up..."
           docker system prune -af --volumes
 
           echo "✅ Deployment done!"
         EOF
+
 
     - name: Health Check - Backend
       run: |
