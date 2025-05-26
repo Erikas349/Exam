@@ -61,17 +61,24 @@ jobs:
 
 
     - name: Health Check - Backend
-      run: |
-        for i in {1..5}; do
-          if curl -fs "http://${{ secrets.EC2_HOST }}:5000/todos"; then
-            echo "✅ Backend healthy!"
-            exit 0
-          fi
-          echo "⏳ Waiting for backend... ($i)"
-          sleep 10
-        done
-        echo "❌ Backend failed health check."
-        exit 1
+  run: |
+    max_attempts=30  # 30 attempts
+    interval=10      # 10 seconds between attempts
+    total_time=$((max_attempts * interval))
+    
+    echo "⏳ Starting backend health check (will timeout after ${total_time}s)"
+    
+    for i in {1..$max_attempts}; do
+      if curl -fs "http://${{ secrets.EC2_HOST }}:5000/todos"; then
+        echo "✅ Backend healthy after $((i * interval))s!"
+        exit 0
+      fi
+      echo "⏳ Attempt $i/$max_attempts - Backend not ready yet..."
+      sleep $interval
+    done
+    
+    echo "❌ Backend failed health check after ${total_time}s"
+    exit 1
 
     - name: Health Check - Frontend
       run: |
