@@ -1,12 +1,12 @@
 provider "aws" {
-  region = "us-east-1"
+  region = "us-central-1"
 }
 
 resource "aws_instance" "app_server" {
-  ami           = "ami-0c94855ba95c71c99" # Replace with latest Amazon Linux or Ubuntu AMI
+  ami           = "ami-02b7d5b1e55a7b5f1"
   instance_type = "t2.micro"
 
-  key_name = "your-key-name" # You need to create/import this key in AWS
+  key_name = "todo-app-key"
 
   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
 
