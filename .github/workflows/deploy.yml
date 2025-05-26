@@ -75,3 +75,14 @@ jobs:
         done
         echo "❌ Frontend failed health check."
         exit 1
+
+    - name: Test SSH access
+      run: |
+        ssh -i "$HOME/.ssh/id_rsa" \
+          -o StrictHostKeyChecking=no \
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+          -p ${{ secrets.EC2_PORT }} \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+        echo "✅ SSH is working from GitHub Actions!"
+        uname -a
+        EOF
