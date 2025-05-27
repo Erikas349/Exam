@@ -8,7 +8,7 @@ resource "aws_instance" "app_server" {
 
   key_name = "todo-app-key"
 
-  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+  vpc_security_group_ids = [aws_security_group.todo-app-security.id]
 
   tags = {
     Name = "TodoApp"
