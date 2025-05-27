@@ -23,8 +23,8 @@ resource "aws_instance" "app_server" {
               EOF
 }
 
-resource "aws_security_group" "allow_ssh" {
-  name        = "allow_ssh"
+resource "aws_security_group" "todo-app-security" {
+  name        = "todo-app-security"
   description = "Allow SSH and HTTP"
 
   ingress {
