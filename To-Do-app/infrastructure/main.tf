@@ -8,7 +8,8 @@ resource "aws_instance" "app_server" {
 
   key_name = "todo-app-key"
 
-  vpc_security_group_ids = [aws_security_group.todo-app-security.id]
+ vpc_security_group_ids = [aws_security_group.todo-app-security.id]
+
 
   tags = {
     Name = "TodoApp"
@@ -24,7 +25,8 @@ resource "aws_instance" "app_server" {
 }
 
 resource "aws_security_group" "todo_app_security" {
-  name   = "todo-app-security"  
+  name        = "todo-app-security"
+  description = "Allow inbound traffic for ToDo app" 
   vpc_id = "vpc-00773d4d01009da90"
 
   ingress {
