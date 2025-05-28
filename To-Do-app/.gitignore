@@ -16,5 +16,7 @@ docker-compose.override.yml
 .idea
 
 #Terraform
-./terraform
-*.tfstate*
+.terraform/
+*.tfstate
+*.tfstate.backup
+crash.log
