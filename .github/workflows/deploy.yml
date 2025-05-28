@@ -7,7 +7,7 @@ on:
 env:
   DOCKER_BUILDKIT: 1
 
-#jobs:
+jobs:
   deploy:
     runs-on: ubuntu-latest
 
