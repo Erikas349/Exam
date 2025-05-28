@@ -23,9 +23,9 @@ resource "aws_instance" "app_server" {
               EOF
 }
 
-resource "aws_security_group" "todo-app-security" {
-  name        = "todo-app-security"
-  description = "Allow SSH and HTTP"
+resource "aws_security_group" "todo_app_security" {
+  name   = "todo-app-security"  
+  vpc_id = "vpc-00773d4d01009da90"
 
   ingress {
     from_port   = 22
