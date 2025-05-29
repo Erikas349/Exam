@@ -1,44 +1,35 @@
 provider "aws" {
-  region = "eu-central-1"
+  region     = "eu-central-1"
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
 }
 
-resource "aws_instance" "app_server" {
-  ami           = "ami-02b7d5b1e55a7b5f1"
+resource "aws_instance" "todo_app" {
+  ami           = "ami-0fc5d935ebf8bc3bc" # Amazon Linux 2023 AMI
   instance_type = "t2.micro"
+  key_name      = var.key_name
 
-  key_name = "todo-app-key"
-
- vpc_security_group_ids = [aws_security_group.todo-app-security.id]
-
+  vpc_security_group_ids = [aws_security_group.todo_app_sg.id]
 
   tags = {
-    Name = "TodoApp"
+    Name = "ToDoAppInstance"
   }
-
-  user_data = <<-EOF
-              #!/bin/bash
-              sudo yum update -y
-              sudo yum install -y docker
-              sudo service docker start
-              docker run -d -p 80:80 your-dockerhub/image-name
-              EOF
 }
 
-resource "aws_security_group" "todo_app_security" {
-  name        = "todo-app-security"
-  description = "Allow inbound traffic for ToDo app" 
-  vpc_id = "vpc-00773d4d01009da90"
-
+resource "aws_security_group" "todo_app_sg" {
+  name        = "todo-app-sg"
+  description = "Allow SSH and app traffic"
+  
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
+  
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 5000
+    to_port     = 5000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
