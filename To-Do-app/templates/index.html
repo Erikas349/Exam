@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple To-Do App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #taskInput {
+            width: 70%;
+            padding: 8px;
+        }
+        button {
+            padding: 8px 15px;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background: #f4f4f4;
+            margin: 5px 0;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .done {
+            text-decoration: line-through;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>My To-Do List</h1>
+    <input type="text" id="taskInput" placeholder="Enter a task...">
+    <button onclick="addTask()">Add Task</button>
+    
+    <h2>Active Tasks</h2>
+    <ul id="taskList"></ul>
+    
+    <h2>Completed Tasks</h2>
+    <ul id="doneList"></ul>
+
+    <script>
+        // Fetch and display tasks when the page loads
+        document.addEventListener('DOMContentLoaded', fetchTasks);
+
+        // Fetch all tasks (active + completed)
+        async function fetchTasks() {
+            const activeTasks = await fetch('/todos').then(res => res.json());
+            const doneTasks = await fetch('/done').then(res => res.json());
+            
+            renderTasks(activeTasks, 'taskList');
+            renderTasks(doneTasks, 'doneList', true);
+        }
+
+        // Render tasks in the UI
+        function renderTasks(tasks, listId, isDone = false) {
+            const list = document.getElementById(listId);
+            list.innerHTML = '';
+            
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = isDone ? 'done' : '';
+                li.innerHTML = `
+                    ${task.task}
+                    <div>
+                        ${!isDone ? `<button onclick="markDone(${task.id})">✓ Done</button>` : ''}
+                        <button onclick="deleteTask(${task.id}, ${isDone})">✗ Delete</button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        // Add a new task
+        async function addTask() {
+            const taskInput = document.getElementById('taskInput');
+            const task = taskInput.value.trim();
+            
+            if (task) {
+                await fetch('/todos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task })
+                });
+                taskInput.value = '';
+                fetchTasks(); // Refresh the list
+            }
+        }
+
+        // Mark a task as done
+        async function markDone(taskId) {
+            await fetch(`/todos/${taskId}/done`, { method: 'POST' });
+            fetchTasks(); // Refresh the list
+        }
+
+        // Delete a task (active or completed)
+        async function deleteTask(taskId, isDone) {
+            const endpoint = isDone ? `/done/${taskId}` : `/todos/${taskId}`;
+            await fetch(endpoint, { method: 'DELETE' });
+            fetchTasks(); // Refresh the list
+        }
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 import sqlite3
 import os
@@ -100,6 +100,11 @@ def delete_done_task(done_id):
         cursor.execute("DELETE FROM done WHERE did=?", (done_id,))
         conn.commit()
     return '', 204
+
+
+@app.route('/')
+def home():
+    return render_template('index.html')  # Serve the HTML frontend
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
