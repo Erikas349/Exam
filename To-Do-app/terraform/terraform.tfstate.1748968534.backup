@@ -1,0 +1,193 @@
+{
+  "version": 4,
+  "terraform_version": "1.12.1",
+  "serial": 2,
+  "lineage": "cf9790a6-eb4d-4cbd-685e-bb7755673e32",
+  "outputs": {
+    "instance_id": {
+      "value": "i-0c9c06184a4d00d2b",
+      "type": "string"
+    },
+    "instance_ip": {
+      "value": "3.127.108.163",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "data",
+      "type": "aws_security_group",
+      "name": "todo_app_security",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:eu-central-1:539247457991:security-group/sg-0849fafd776afc5d3",
+            "description": "my-todo-app-sg",
+            "filter": [
+              {
+                "name": "group-name",
+                "values": [
+                  "todo-app-security"
+                ]
+              },
+              {
+                "name": "vpc-id",
+                "values": [
+                  "vpc-00773d4d01009da90"
+                ]
+              }
+            ],
+            "id": "sg-0849fafd776afc5d3",
+            "name": "todo-app-security",
+            "tags": {},
+            "timeouts": null,
+            "vpc_id": "vpc-00773d4d01009da90"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "TodoApp",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "ami": "ami-02b7d5b1e55a7b5f1",
+            "arn": "arn:aws:ec2:eu-central-1:539247457991:instance/i-0c9c06184a4d00d2b",
+            "associate_public_ip_address": true,
+            "availability_zone": "eu-central-1a",
+            "capacity_reservation_specification": [
+              {
+                "capacity_reservation_preference": "open",
+                "capacity_reservation_target": []
+              }
+            ],
+            "cpu_core_count": 1,
+            "cpu_options": [
+              {
+                "amd_sev_snp": "",
+                "core_count": 1,
+                "threads_per_core": 1
+              }
+            ],
+            "cpu_threads_per_core": 1,
+            "credit_specification": [
+              {
+                "cpu_credits": "standard"
+              }
+            ],
+            "disable_api_stop": false,
+            "disable_api_termination": false,
+            "ebs_block_device": [],
+            "ebs_optimized": false,
+            "enable_primary_ipv6": null,
+            "enclave_options": [
+              {
+                "enabled": false
+              }
+            ],
+            "ephemeral_block_device": [],
+            "get_password_data": false,
+            "hibernation": false,
+            "host_id": "",
+            "host_resource_group_arn": null,
+            "iam_instance_profile": "",
+            "id": "i-0c9c06184a4d00d2b",
+            "instance_initiated_shutdown_behavior": "stop",
+            "instance_lifecycle": "",
+            "instance_market_options": [],
+            "instance_state": "running",
+            "instance_type": "t2.micro",
+            "ipv6_address_count": 0,
+            "ipv6_addresses": [],
+            "key_name": "todo-app-key",
+            "launch_template": [],
+            "maintenance_options": [
+              {
+                "auto_recovery": "default"
+              }
+            ],
+            "metadata_options": [
+              {
+                "http_endpoint": "enabled",
+                "http_protocol_ipv6": "disabled",
+                "http_put_response_hop_limit": 2,
+                "http_tokens": "required",
+                "instance_metadata_tags": "disabled"
+              }
+            ],
+            "monitoring": false,
+            "network_interface": [],
+            "outpost_arn": "",
+            "password_data": "",
+            "placement_group": "",
+            "placement_partition_number": 0,
+            "primary_network_interface_id": "eni-0f66c126f86073f68",
+            "private_dns": "ip-172-31-17-251.eu-central-1.compute.internal",
+            "private_dns_name_options": [
+              {
+                "enable_resource_name_dns_a_record": false,
+                "enable_resource_name_dns_aaaa_record": false,
+                "hostname_type": "ip-name"
+              }
+            ],
+            "private_ip": "172.31.17.251",
+            "public_dns": "ec2-3-127-108-163.eu-central-1.compute.amazonaws.com",
+            "public_ip": "3.127.108.163",
+            "root_block_device": [
+              {
+                "delete_on_termination": true,
+                "device_name": "/dev/xvda",
+                "encrypted": false,
+                "iops": 3000,
+                "kms_key_id": "",
+                "tags": {},
+                "tags_all": {},
+                "throughput": 125,
+                "volume_id": "vol-06cdfe0b4c2099713",
+                "volume_size": 8,
+                "volume_type": "gp3"
+              }
+            ],
+            "secondary_private_ips": [],
+            "security_groups": [
+              "todo-app-security"
+            ],
+            "source_dest_check": true,
+            "spot_instance_request_id": "",
+            "subnet_id": "subnet-0db6a9503152ca23a",
+            "tags": {
+              "Name": "TodoApp"
+            },
+            "tags_all": {
+              "Name": "TodoApp"
+            },
+            "tenancy": "default",
+            "timeouts": null,
+            "user_data": "6559bee53ad12294585aff15ed52346e736a8dfd",
+            "user_data_base64": null,
+            "user_data_replace_on_change": false,
+            "volume_tags": null,
+            "vpc_security_group_ids": [
+              "sg-0849fafd776afc5d3"
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMCwicmVhZCI6OTAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "data.aws_security_group.todo_app_security"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}
