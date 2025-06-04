@@ -19,11 +19,19 @@ jobs:
         run: |
           SSH_DIR="$HOME/.ssh"
           mkdir -p "$SSH_DIR"
+          chmod 700 "$SSH_DIR"
           echo "${{ secrets.EC2_SSH_KEY }}" > "$SSH_DIR/id_rsa"
           chmod 600 "$SSH_DIR/id_rsa"
           
-         
-          ssh-keyscan -p ${{ secrets.EC2_PORT }} "${{ secrets.EC2_HOST }}" >> "$SSH_DIR/known_hosts"
+          # Use the actual host and port variables
+          ssh-keyscan -p "${{ secrets.EC2_PORT }}" "${{ secrets.EC2_HOST }}" >> "$SSH_DIR/known_hosts"
+          
+          # Verify the connection
+          ssh -i "$SSH_DIR/id_rsa" \
+            -o StrictHostKeyChecking=no \
+            -p "${{ secrets.EC2_PORT }}" \
+            "ec2-user@${{ secrets.EC2_HOST }}" \
+            "echo 'SSH connection successful!'"
 
       - name: Test SSH connection
         run: |
