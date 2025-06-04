@@ -5,7 +5,7 @@ import os
 from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
-CORS(app)  # Allow frontend to make cross-origin requests
+CORS(app) 
 
 
 # Initialize Prometheus metrics
