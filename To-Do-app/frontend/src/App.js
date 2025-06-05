@@ -2,15 +2,18 @@ import React, { useEffect, useState } from 'react';
 
 const BACKEND_URL = 'http://3.71.116.203:5000';
 
-
 function App() {
   const [todos, setTodos] = useState([]);
   const [newTask, setNewTask] = useState('');
 
-  useEffect(() => {
+  const fetchTodos = () => {
     fetch(`${BACKEND_URL}/todos`)
       .then(res => res.json())
       .then(data => setTodos(data));
+  };
+
+  useEffect(() => {
+    fetchTodos();
   }, []);
 
   const addTodo = () => {
@@ -21,16 +24,15 @@ function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ task: newTask }),
     })
-      .then(res => res.json())
-      .then(data => {
-        setTodos([...todos, { id: data.id || todos.length + 1, task: newTask }]);
+      .then(() => {
         setNewTask('');
+        fetchTodos(); // Refresh list after adding
       });
   };
 
   const deleteTodo = (id) => {
     fetch(`${BACKEND_URL}/todos/${id}`, { method: 'DELETE' })
-      .then(() => setTodos(todos.filter(todo => todo.id !== id)));
+      .then(() => fetchTodos()); // Refresh list after deleting
   };
 
   return (
