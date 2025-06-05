@@ -23,14 +23,8 @@ def init_db():
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS tasks (
                 tid INTEGER PRIMARY KEY AUTOINCREMENT,
-                task TEXT NOT NULL
-            )
-        ''')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS done (
-                did INTEGER PRIMARY KEY AUTOINCREMENT,
                 task TEXT NOT NULL,
-                task_id INTEGER
+                done INTEGER NOT NULL DEFAULT 0
             )
         ''')
         conn.commit()
@@ -50,8 +44,8 @@ def health_check():
 @app.route('/todos', methods=['GET'])
 def get_todos():
     with get_db_connection() as conn:
-        tasks = conn.execute("SELECT tid, task FROM tasks").fetchall()
-    return jsonify([{'id': row['tid'], 'task': row['task']} for row in tasks])
+        tasks = conn.execute("SELECT tid, task, done FROM tasks").fetchall()
+    return jsonify([{'id': row['tid'], 'task': row['task'], 'done': bool(row['done'])} for row in tasks])
 
 @app.route('/todos', methods=['POST'])
 def add_todo():
@@ -65,7 +59,27 @@ def add_todo():
         conn.commit()
     return jsonify({'message': 'Task added successfully'}), 201
 
-# You can add more routes for updating or deleting tasks if needed
+@app.route('/todos/<int:task_id>/done', methods=['PUT'])
+def toggle_done(task_id):
+    data = request.get_json()
+    done = data.get('done')
+    if done is None:
+        return jsonify({'error': 'Missing done field'}), 400
+    with get_db_connection() as conn:
+        cursor = conn.execute("UPDATE tasks SET done = ? WHERE tid = ?", (int(done), task_id))
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({'error': 'Task not found'}), 404
+    return jsonify({'message': 'Task updated successfully'})
+
+@app.route('/todos/<int:task_id>', methods=['DELETE'])
+def delete_todo(task_id):
+    with get_db_connection() as conn:
+        cursor = conn.execute("DELETE FROM tasks WHERE tid = ?", (task_id,))
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({'error': 'Task not found'}), 404
+    return jsonify({'message': 'Task deleted successfully'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
