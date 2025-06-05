@@ -23,7 +23,7 @@ docker-compose.override.yml
 crash.log
 
 #DB
-#backend/todo.db
-#To-Do-app/backend/todo.db
+backend/todo.db
+To-Do-app/backend/todo.db
 *.db
 
