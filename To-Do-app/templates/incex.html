@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #taskInput {
+            width: 70%;
+            padding: 8px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background: #f4f4f4;
+            margin: 5px 0;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .task-text {
+            flex-grow: 1;
+        }
+        .done {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .task-actions button {
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>To-Do List</h1>
+    <div>
+        <input type="text" id="taskInput" placeholder="Enter a new task...">
+        <button onclick="addTask()">Add Task</button>
+    </div>
+    
+    <h2>Active Tasks</h2>
+    <ul id="activeTasks"></ul>
+    
+    <h2>Completed Tasks</h2>
+    <ul id="completedTasks"></ul>
+
+    <script>
+        // Load tasks when page loads
+        document.addEventListener('DOMContentLoaded', loadTasks);
+
+        async function loadTasks() {
+            try {
+                // Load active tasks
+                const activeResponse = await fetch('http://localhost:5000/todos');
+                const activeTasks = await activeResponse.json();
+                renderTasks(activeTasks, 'activeTasks', false);
+                
+                // Load completed tasks
+                const completedResponse = await fetch('http://localhost:5000/done');
+                const completedTasks = await completedResponse.json();
+                renderTasks(completedTasks, 'completedTasks', true);
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+            }
+        }
+
+        function renderTasks(tasks, listId, isCompleted) {
+            const list = document.getElementById(listId);
+            list.innerHTML = '';
+            
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                if (isCompleted) {
+                    li.classList.add('done');
+                }
+                
+                li.innerHTML = `
+                    <span class="task-text">${task.task}</span>
+                    <div class="task-actions">
+                        ${!isCompleted ? 
+                            `<button onclick="markAsDone(${task.id})">✓ Done</button>` : 
+                            ''}
+                        <button onclick="deleteTask(${task.id}, ${isCompleted})">✗ Delete</button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        async function addTask() {
+            const input = document.getElementById('taskInput');
+            const taskText = input.value.trim();
+            
+            if (taskText) {
+                try {
+                    const response = await fetch('http://localhost:5000/todos', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ task: taskText })
+                    });
+                    
+                    if (response.ok) {
+                        input.value = '';
+                        loadTasks(); // Refresh the list
+                    }
+                } catch (error) {
+                    console.error('Error adding task:', error);
+                }
+            }
+        }
+
+        async function markAsDone(taskId) {
+            try {
+                const response = await fetch(`http://localhost:5000/todos/${taskId}/done`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    loadTasks(); // Refresh the list
+                }
+            } catch (error) {
+                console.error('Error marking task as done:', error);
+            }
+        }
+
+        async function deleteTask(taskId, isCompleted) {
+            try {
+                const endpoint = isCompleted ? 
+                    `http://localhost:5000/done/${taskId}` : 
+                    `http://localhost:5000/todos/${taskId}`;
+                
+                const response = await fetch(endpoint, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadTasks(); // Refresh the list
+                }
+            } catch (error) {
+                console.error('Error deleting task:', error);
+            }
+        }
+    </script>
+</body>
+</html>
