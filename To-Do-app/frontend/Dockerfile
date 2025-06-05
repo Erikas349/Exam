@@ -1,10 +1,16 @@
 # Stage 1: Build frontend
 FROM node:22-alpine AS builder
-WORKDIR /app
+WORKDIR /app/frontend
 
-COPY package.json ./
+# Copy only the frontend 
+COPY frontend/package.json ./ 
+
+
 RUN npm install
-COPY . .
+
+# Copy frontend source files
+COPY frontend/. ./
+
 RUN CI=false npm run build || \
     (echo "Build failed - attempting to fix linting errors..." && \
      npx eslint --fix src/ && \
@@ -12,7 +18,7 @@ RUN CI=false npm run build || \
 
 # Stage 2: Serve with NGINX
 FROM nginx:1.25-alpine
-COPY --from=builder /app/build /usr/share/nginx/html
+COPY --from=builder /app/frontend/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
