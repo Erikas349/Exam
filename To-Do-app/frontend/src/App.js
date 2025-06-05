@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+
 function App() {
   const [todos, setTodos] = useState([]);
   const [newTask, setNewTask] = useState('');
