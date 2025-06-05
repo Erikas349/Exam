@@ -3,29 +3,32 @@ version: '3.8'
 services:
   backend:
     build: ./backend
+    container_name: backend
     ports:
       - "5000:5000"
     volumes:
-    - ./data:/home/app/data
-  
+      - ./backend:/app
+      - todo-data:/app/todo_data  # Ensure persistence of the DB file
+    working_dir: /app
     networks:
       - monitoring
     environment:
-      AWS_ACCESS_KEY_ID: your_aws_access_key_id
-      AWS_SECRET_ACCESS_KEY: your_aws_secret_access_key
-      AWS_DEFAULT_REGION: eu-central-1
+      - FLASK_ENV=production
+    restart: always
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: frontend
     ports:
       - "3000:80"
+    depends_on:
+      - backend
 
   prometheus:
     image: prom/prometheus
-    container_name: 
-      prometheus
+    container_name: prometheus
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
@@ -35,6 +38,7 @@ services:
 
   grafana:
     image: grafana/grafana
+    container_name: grafana
     ports:
       - "3001:3000"
     volumes:
@@ -44,6 +48,7 @@ services:
 
 volumes:
   grafana-data:
+  todo-data:
 
 networks:
   monitoring:
