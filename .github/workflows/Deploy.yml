@@ -64,6 +64,9 @@ jobs:
             fi
             cd ~/Exam/To-Do-app
             git config --global --add safe.directory ~/Exam/To-Do-app
+
+            rm -f backend/todo.db
+
             git pull origin main
 
             echo "🔄 Rebuilding Docker containers..."
