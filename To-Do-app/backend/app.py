@@ -1,17 +1,14 @@
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from prometheus_flask_exporter import PrometheusMetrics
 import sqlite3
 import os
 
-app = Flask(__name__, template_folder='../templates', static_folder='../frontend/public')
+app = Flask(__name__)
 CORS(app)
 metrics = PrometheusMetrics(app)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
-
-# --- Database setup ---
+# Database setup
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'todo.db')
 
@@ -20,7 +17,6 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-# Create tables on startup
 def init_db():
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -41,7 +37,11 @@ def init_db():
 
 init_db()
 
-# --- API Routes ---
+# Routes
+
+@app.route('/')
+def index():
+    return jsonify({"message": "Backend is running"})
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -55,4 +55,17 @@ def get_todos():
 
 @app.route('/todos', methods=['POST'])
 def add_todo():
-    data = request.get_jso_
+    data = request.get_json()
+    task = data.get('task') if data else None
+    if not task:
+        return jsonify({'error': 'Task is required'}), 400
+
+    with get_db_connection() as conn:
+        conn.execute("INSERT INTO tasks (task) VALUES (?)", (task,))
+        conn.commit()
+    return jsonify({'message': 'Task added successfully'}), 201
+
+# You can add more routes for updating or deleting tasks if needed
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
