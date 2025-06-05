@@ -2,13 +2,11 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-COPY package.json ./
+COPY package.json package-lock.json* ./
 RUN npm install
-COPY . ./
-RUN CI=false npm run build || \
-    (echo "Build failed - attempting to fix linting errors..." && \
-     npx eslint --fix src/ && \
-     npm run build)
+
+COPY . .
+RUN npm run build
 
 # Stage 2: Serve with NGINX
 FROM nginx:1.25-alpine
