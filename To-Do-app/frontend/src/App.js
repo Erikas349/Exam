@@ -5,7 +5,7 @@ function App() {
   const [newTask, setNewTask] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:5000/todos')
+    fetch(`${API_URL}/todos`)
       .then(res => res.json())
       .then(data => setTodos(data));
   }, []);
@@ -13,7 +13,7 @@ function App() {
   const addTodo = () => {
     if (newTask.trim() === '') return;
 
-    fetch('http://localhost:5000/todos', {
+    fetch(`${API_URL}/todos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ task: newTask }),
@@ -26,7 +26,7 @@ function App() {
   };
 
   const deleteTodo = (id) => {
-    fetch(`http://localhost:5000/todos/${id}`, { method: 'DELETE' })
+    fetch(`${API_URL}/todos/${id}`, { method: 'DELETE' })
       .then(() => setTodos(todos.filter(todo => todo.id !== id)));
   };
 
