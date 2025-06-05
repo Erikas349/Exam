@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const BACKEND_URL = 'http://3.71.116.203:5000';
 
 
 function App() {
@@ -8,7 +8,7 @@ function App() {
   const [newTask, setNewTask] = useState('');
 
   useEffect(() => {
-    fetch(`${API_URL}/todos`)
+    fetch(`${BACKEND_URL}/todos`)
       .then(res => res.json())
       .then(data => setTodos(data));
   }, []);
@@ -16,7 +16,7 @@ function App() {
   const addTodo = () => {
     if (newTask.trim() === '') return;
 
-    fetch(`${API_URL}/todos`, {
+    fetch(`${BACKEND_URL}/todos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ task: newTask }),
@@ -29,7 +29,7 @@ function App() {
   };
 
   const deleteTodo = (id) => {
-    fetch(`${API_URL}/todos/${id}`, { method: 'DELETE' })
+    fetch(`${BACKEND_URL}/todos/${id}`, { method: 'DELETE' })
       .then(() => setTodos(todos.filter(todo => todo.id !== id)));
   };
 
