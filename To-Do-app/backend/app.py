@@ -43,9 +43,13 @@ def health_check():
 
 @app.route('/todos', methods=['GET'])
 def get_todos():
-    with get_db_connection() as conn:
-        tasks = conn.execute("SELECT tid, task, done FROM tasks").fetchall()
-    return jsonify([{'id': row['tid'], 'task': row['task'], 'done': bool(row['done'])} for row in tasks])
+    try:
+        with get_db_connection() as conn:
+            tasks = conn.execute("SELECT tid, task, done FROM tasks").fetchall()
+        return jsonify([{'id': row['tid'], 'task': row['task'], 'done': bool(row['done'])} for row in tasks])
+    except Exception as e:
+        print("Error fetching tasks:", e)
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 @app.route('/todos', methods=['POST'])
 def add_todo():
